@@ -1,0 +1,66 @@
+# Entorno virtual
+venv/
+.env
+.venv/
+env/
+ENV/
+*.env
+*.env.*
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs y archivos temporales
+*.log
+*.pid
+*.tmp
+*.bak
+
+# Archivos de bases de datos locales
+*.db
+*.sqlite3
+
+# Archivos de configuración del IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+htmlcov/
+.coverage
+.tox/
+.nox/
+.cache/
+coverage.xml
+
+# pytest
+.pytest_cache/
+
+# build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# FastAPI-specific or project-specific
+instance/
+uploads/
