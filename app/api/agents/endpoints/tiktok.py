@@ -9,29 +9,23 @@ from typing import List, Dict, Any, Optional
 
 # Importación de módulos de servicio
 from app.api.agents.services.browser import TikTokBrowser
-from app.api.agents.services.audio_capture import BrowserTabAudioCapture
-from app.api.agents.services.transcription import AudioTranscriber
-from app.api.agents.services.audio_capture_class import AudioCapture
 
 # Importación de componentes de Selenium
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
 
 # Importamos los utils de tiktok
 from app.api.agents.endpoints.utils_tiktok.transcription import capturar_subtitulos
+from app.api.agents.endpoints.utils_tiktok.extract_information import extraer_informacion, extraer_comentarios, mostrar_resultados
 from app.api.agents.endpoints.utils import es_politica_peru
 from app.api.agents.endpoints.utils import activar_subtitulos, dar_like, pasar_siguiente_video
-from app.api.agents.endpoints.utils import esperar_elemento, hay_subtitulos_visibles
+from app.api.agents.endpoints.utils import esperar_elemento
 
 # Creación del enrutador de la API
 router = APIRouter()
 
 @router.get("/tiktok-transcribe")
 async def tiktok_transcribe(num_videos: str = "1"):
-    # Convertimos los parámetros a enteros
     num_videos = int(num_videos)
 
     browser = None
@@ -54,7 +48,7 @@ async def tiktok_transcribe(num_videos: str = "1"):
             if feed_title:
                 print("Estamos en la sección 'Para ti'")
             else:
-                print("No se encontró la sección 'Para ti', pero continuamos el procesamiento")
+                print("No se encontró la sección 'Para ti'")
         except Exception as e:
             print(f"No se pudo verificar la sección: {str(e)}")
         
@@ -77,7 +71,7 @@ async def tiktok_transcribe(num_videos: str = "1"):
                 
                 # Capturamos los subtítulos
                 print("Capturando subtítulos...")
-                subtitles = capturar_subtitulos(driver, 65)
+                subtitles = capturar_subtitulos(driver, 25)
                 
                 if not subtitles or len(subtitles.strip()) < 5:  # Verificamos que no esté vacío o sea muy corto
                     print("No se capturaron subtítulos suficientes. Pasando al siguiente video...")
@@ -89,7 +83,6 @@ async def tiktok_transcribe(num_videos: str = "1"):
                 # Verificamos si el contenido está relacionado con política peruana
                 print("Analizando si el contenido es sobre política peruana...")
                 es_politico = await es_politica_peru(subtitles)
-                print(f"¿Es contenido político peruano?: {es_politico}")
                 
                 # Guardamos los resultados de este video
                 resultado_video = {
@@ -106,9 +99,15 @@ async def tiktok_transcribe(num_videos: str = "1"):
                     continue
                 
                 # Si es político, damos like al video
-                print("¡Contenido político peruano encontrado! Dando like...")
-                like_exitoso = dar_like(driver)
-                resultado_video["like_dado"] = like_exitoso
+                print("Contenido político peruano encontrado, Dando like...")
+                dar_like(driver)
+                print("Extrayendo información del video...")
+                info = extraer_informacion(driver)
+                comentarios = extraer_comentarios(driver)
+                print(comentarios)
+                mostrar_resultados(info, comentarios)
+
+
                 
                 # Si no es el último video, pasamos al siguiente
                 if i < num_videos - 1:

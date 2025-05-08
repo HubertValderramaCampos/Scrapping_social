@@ -1,17 +1,20 @@
 import os
-import openai
 import time
+import openai
+from openai import AsyncOpenAI  # Importante para la nueva versión 1.77.0
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Configuración del cliente OpenAI (nuevo enfoque)
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 async def es_politica_peru(texto: str) -> bool:
-
-    # Construir el prompt para GPT
+    """
+    Analiza si un texto está relacionado con temas políticos o sociales del Perú.
+    """
     system_prompt = (
         "Eres un analizador de contenido experto en identificar cualquier mención o alusión a temas políticos o sociales del Perú. "
         "Analiza el siguiente texto, que corresponde a subtítulos de un video de TikTok. Debes detectar si el contenido presenta "
@@ -22,11 +25,10 @@ async def es_politica_peru(texto: str) -> bool:
         "Responde únicamente con 'true' si el texto está relacionado con cualquiera de estos temas. En caso contrario, responde 'false'."
     )
 
-
-    user_prompt = f"Texto: \"{texto}\""
+    user_prompt = f'Texto: "{texto}"'
 
     try:
-        respuesta = await openai.ChatCompletion.acreate(
+        respuesta = await client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -37,17 +39,17 @@ async def es_politica_peru(texto: str) -> bool:
         )
 
         contenido = respuesta.choices[0].message.content.strip().lower()
-        # Interpretar la respuesta de GPT
-        if contenido.startswith('true'):
+        if contenido.startswith("true"):
             return True
-        elif contenido.startswith('false'):
+        elif contenido.startswith("false"):
             return False
         else:
-            # En caso inesperado, considerar como False
             return False
 
     except Exception as e:
+        print(f"Error con OpenAI: {e}")
         return False
+    
 
 
 def esperar_elemento(driver, by, selector, tiempo=10):
@@ -128,54 +130,25 @@ def activar_subtitulos(driver):
         return False
 
 
-def dar_like(driver, intentos_max=3):
-    """
-    Da like al video actual.
-    
-    Args:
-        driver: El driver de Selenium WebDriver
-        intentos_max: Número máximo de intentos
-    
-    Returns:
-        True si se dio like, False si no
-    """
+def dar_like(driver):
+
     print("Intentando dar like...")
-    
-    for intento in range(intentos_max):
-        try:
-            # Primer método: selector CSS específico
-            like_button = esperar_elemento(driver, By.CSS_SELECTOR, 
-                "button.css-nmbm7z-ButtonActionItem[data-e2e='like-icon'], button[data-e2e='like-icon']", 2)
-            
-            if like_button:
-                like_button.click()
-                time.sleep(1)
-                print(f"Like dado correctamente (método 1, intento {intento+1})")
-                return True
-                
-            # Segundo método: mediante XPath
-            like_button = esperar_elemento(driver, By.XPATH, "//button[.//span[@data-e2e='like-icon']]", 2)
-            if like_button:
-                like_button.click()
-                time.sleep(1)
-                print(f"Like dado correctamente (método 2, intento {intento+1})")
-                return True
-                
-            # Tercer método: buscar por texto o atributo aria-label
-            like_button = esperar_elemento(driver, By.XPATH, 
-                "//button[contains(@aria-label, 'like') or contains(@aria-label, 'Me gusta')]", 2)
-            if like_button:
-                like_button.click()
-                time.sleep(1)
-                print(f"Like dado correctamente (método 3, intento {intento+1})")
-                return True
-                
-        except Exception as e:
-            print(f"Error al dar like (intento {intento+1}/{intentos_max}): {str(e)}")
+
+    try:
+        # Único método: mediante XPath
+        like_button = esperar_elemento(driver, By.XPATH, "//button[.//span[@data-e2e='like-icon']]", 2)
+        if like_button:
+            like_button.click()
             time.sleep(1)
-    
-    print("No se pudo dar like después de varios intentos")
+            print("Like dado correctamente (método XPath)")
+            return True
+
+    except Exception as e:
+        print(f"Error al dar like: {str(e)}")
+
+    print("No se pudo dar like")
     return False
+
             
             
 def pasar_siguiente_video(driver, intentos_max=3):
