@@ -1,17 +1,18 @@
 import os
 import time
 import openai
-from openai import AsyncOpenAI  # Importante para la nueva versión 1.77.0
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
-# Configuración del cliente OpenAI (nuevo enfoque)
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-async def es_politica_peru(texto: str) -> bool:
+
+
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def es_politica_peru(texto: str) -> bool:
     """
     Analiza si un texto está relacionado con temas políticos o sociales del Perú.
     """
@@ -28,7 +29,7 @@ async def es_politica_peru(texto: str) -> bool:
     user_prompt = f'Texto: "{texto}"'
 
     try:
-        respuesta = await client.chat.completions.create(
+        respuesta = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -49,22 +50,11 @@ async def es_politica_peru(texto: str) -> bool:
     except Exception as e:
         print(f"Error con OpenAI: {e}")
         return False
-    
+
 
 
 def esperar_elemento(driver, by, selector, tiempo=10):
-    """
-    Espera a que un elemento esté presente en la página.
-    
-    Args:
-        driver: El driver de Selenium WebDriver
-        by: El método de localización (Por ejemplo, By.TAG_NAME)
-        selector: El selector para encontrar el elemento
-        tiempo: Tiempo máximo de espera en segundos
-        
-    Returns:
-        El elemento si se encuentra, None si no
-    """
+
     try:
         elemento = WebDriverWait(driver, tiempo).until(
             EC.presence_of_element_located((by, selector))
@@ -131,11 +121,11 @@ def activar_subtitulos(driver):
 
 
 def dar_like(driver):
-
     print("Intentando dar like...")
 
     try:
-        # Único método: mediante XPath
+        # Esperar 1 segundo antes de intentar localizar el botón
+        time.sleep(1)
         like_button = esperar_elemento(driver, By.XPATH, "//button[.//span[@data-e2e='like-icon']]", 2)
         if like_button:
             like_button.click()
@@ -150,63 +140,48 @@ def dar_like(driver):
     return False
 
             
-            
-def pasar_siguiente_video(driver, intentos_max=3):
-    """
-    Pasa al siguiente video en TikTok.
-    
-    Args:
-        driver: El driver de Selenium WebDriver
-        intentos_max: Número máximo de intentos
-        
-    Returns:
-        True si se pasó al siguiente video, False si no
-    """
+
+
+
+def pasar_siguiente_video(driver):
     print("Pasando al siguiente video...")
-    
-    for intento in range(intentos_max):
-        try:
-            # Primer método: botón de flecha derecha
-            next_button = esperar_elemento(driver, By.CSS_SELECTOR, 
-                'button[data-e2e="arrow-right"], button[aria-label="Siguiente video"]', 2)
-            
-            if next_button:
-                next_button.click()
-                time.sleep(3)  # Esperamos más tiempo para que cargue el nuevo video
-                print(f"Se pasó al siguiente video (método 1, intento {intento+1})")
-                return True
-                
-            # Segundo método: pulsando la tecla flecha abajo
-            video_element = esperar_elemento(driver, By.TAG_NAME, "video", 2)
-            if video_element:
-                actions = ActionChains(driver)
-                actions.send_keys('\ue015')  # Código para la tecla flecha abajo
-                actions.perform()
-                time.sleep(3)
-                print(f"Se pasó al siguiente video (método 2, intento {intento+1})")
-                return True
-                
-        except Exception as e:
-            print(f"Error al pasar al siguiente video (intento {intento+1}/{intentos_max}): {str(e)}")
-            time.sleep(1)
-    
-    print("No se pudo pasar al siguiente video después de varios intentos")
-    return False
-    
-    
-def hay_subtitulos_visibles(driver):
-    """
-    Verifica si hay subtítulos visibles en la pantalla.
-    
-    Args:
-        driver: El driver de Selenium WebDriver
-        
-    Returns:
-        True si hay subtítulos visibles, False si no
-    """
+
     try:
-        # Buscar elementos de subtítulos con diferentes selectores posibles
-        subtitulos = driver.find_elements(By.CSS_SELECTOR, ".caption-container, .tiktok-caption-container, .tt-caption")
-        return len(subtitulos) > 0
-    except:
+        # Verificar si existe el icono de 'Noticias' antes de proceder
+        selector_noticias = 'svg use[xlink\\:href="#Arrow_Counter_Clockwise-3e058a80"]'
+        icono_noticias = driver.find_elements(By.CSS_SELECTOR, selector_noticias)
+
+        # Si encontramos el icono de 'Noticias', hacer clic
+        if icono_noticias:
+            print("Icono de 'Noticias' encontrado, haciendo clic...")
+            contenedor_icono = driver.find_element(By.CSS_SELECTOR, 'svg use[xlink\\:href="#Arrow_Counter_Clockwise-3e058a80"]')
+            contenedor_icono.click()
+            time.sleep(1)
+
+        # Verificar si existe el botón para repetir y hacer clic en él si está presente
+        try:
+            selector_repetir = 'div.css-q1bwae-DivPlayIconContainer.e1ya9dnw8 svg use[xlink\\:href="#Arrow_Counter_Clockwise-3e058a80"]'
+            icono_repetir = driver.find_elements(By.CSS_SELECTOR, selector_repetir)
+
+            if icono_repetir:
+                print("Ícono de repetir encontrado, haciendo clic para desactivarlo...")
+                contenedor_icono_repetir = driver.find_element(By.CSS_SELECTOR, 'div.css-q1bwae-DivPlayIconContainer.e1ya9dnw8')
+                contenedor_icono_repetir.click()
+                time.sleep(1)
+        except Exception as e:
+            print(f"No se encontró el botón de repetir: {e}")
+
+        # Intentar encontrar y hacer clic en el botón para pasar al siguiente video
+        try:
+            next_button = driver.find_element(By.CSS_SELECTOR, 'button[data-e2e="arrow-right"], button[aria-label="Siguiente video"]')
+            next_button.click()
+            time.sleep(3)
+            print("Se pasó al siguiente video exitosamente.")
+            return True
+        except Exception as e:
+            print("No se encontró el botón para pasar al siguiente video.")
+            return False
+
+    except Exception as e:
+        print(f"Error al intentar pasar al siguiente video: {e}")
         return False

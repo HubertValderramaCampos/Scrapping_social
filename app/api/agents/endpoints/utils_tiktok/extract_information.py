@@ -31,7 +31,15 @@ def convertir_numero(texto):
         return int(texto)
 
 def extraer_informacion(driver):
- 
+    """
+    Extrae información general del video de TikTok.
+    
+    Args:
+        driver: Objeto WebDriver de Selenium.
+        
+    Returns:
+        Diccionario con la información extraída.
+    """
     # Inicializar diccionario para almacenar la información
     resultado = {
         'likes': 0,
@@ -57,15 +65,19 @@ def extraer_informacion(driver):
         print(f"Error al extraer comentarios: {e}")
     
     try:
-        # Extraer fecha
-        # Buscar en el contenedor de información del usuario
+        # Intentar diferentes métodos para obtener la fecha
         fecha_element = None
+        
+        # Método 1: Buscar en el span que contiene la fecha
         try:
             fecha_element = driver.find_element(By.CSS_SELECTOR, "span[data-e2e='browser-nickname'] span:nth-child(3)")
         except NoSuchElementException:
-            # Intentar buscar en otros lugares donde pueda estar la fecha
+            pass
+        
+        # Método 2: Buscar texto que contenga formatos de fecha comunes
+        if not fecha_element:
             try:
-                fecha_elements = driver.find_elements(By.XPATH, "//span[contains(text(), 'día')]")
+                fecha_elements = driver.find_elements(By.XPATH, "//span[contains(text(), 'día') or contains(text(), '-') or contains(text(), 'Hace')]")
                 if fecha_elements:
                     fecha_element = fecha_elements[0]
             except:
@@ -84,16 +96,19 @@ def extraer_informacion(driver):
     return resultado
 
 def procesar_fecha(fecha_texto):
-  
     fecha_actual = datetime.now()
-    
+
     # Formato: "Hace X día(s)"
     if "Hace" in fecha_texto and "día" in fecha_texto:
         dias_regex = re.search(r'Hace (\d+)', fecha_texto)
         if dias_regex:
             dias_atras = int(dias_regex.group(1))
             return fecha_actual - timedelta(days=dias_atras)
-    
+
+    # Formato: "Hace X h" (horas) o "Hace X m" (minutos) → es hoy
+    elif re.search(r'Hace \d+\s*[hm]', fecha_texto):
+        return fecha_actual.replace(hour=0, minute=0, second=0, microsecond=0)
+
     # Formato: "X-Y" donde X es el mes e Y es el día
     elif re.match(r'^\d+-\d+$', fecha_texto):
         mes, dia = map(int, fecha_texto.split('-'))
@@ -102,22 +117,23 @@ def procesar_fecha(fecha_texto):
         if mes > fecha_actual.month or (mes == fecha_actual.month and dia > fecha_actual.day):
             año -= 1
         return datetime(año, mes, dia)
-    
+
     # Formato: "YYYY-MM-DD"
     elif re.match(r'^\d{4}-\d{1,2}-\d{1,2}$', fecha_texto):
         año, mes, dia = map(int, fecha_texto.split('-'))
         return datetime(año, mes, dia)
-    
+
     # Si no se reconoce el formato, devolver la fecha actual
     return fecha_actual
 
+
 def scrollear_comentarios(driver, max_intentos=20):
-   
+
     print("Scrolleando para cargar todos los comentarios...")
     
     # Encontrar el contenedor de comentarios
     try:
-        comentarios_container = driver.find_element(By.CSS_SELECTOR, ".css-1sg2lsz-DivCommentListContainer")
+        comentarios_container = driver.find_element(By.CSS_SELECTOR, ".css-7whb78-DivCommentListContainer")
     except NoSuchElementException:
         print("No se encontró el contenedor de comentarios.")
         return 0
@@ -135,38 +151,43 @@ def scrollear_comentarios(driver, max_intentos=20):
     # Scrollear hasta cargar todos los comentarios o llegar al límite de intentos
     while intentos < max_intentos and sin_cambios < 3:
         # Hacer scroll al último comentario
-        ultimo_comentario = driver.find_elements(By.CSS_SELECTOR, ".css-1gstnae-DivCommentItemWrapper")[-1]
-        driver.execute_script("arguments[0].scrollIntoView();", ultimo_comentario)
-        
-        # Esperar a que carguen más comentarios
-        time.sleep(2)
-        
-        # Contar comentarios después del scroll
-        elementos_comentarios = driver.find_elements(By.CSS_SELECTOR, ".css-1gstnae-DivCommentItemWrapper")
-        nuevos_comentarios = len(elementos_comentarios)
-        
-        print(f"Intento {intentos+1}: {nuevos_comentarios} comentarios cargados")
-        
-        # Verificar si se cargaron más comentarios
-        if nuevos_comentarios > comentarios_actuales:
-            comentarios_actuales = nuevos_comentarios
-            sin_cambios = 0
+        if elementos_comentarios:
+            ultimo_comentario = elementos_comentarios[-1]
+            driver.execute_script("arguments[0].scrollIntoView();", ultimo_comentario)
+            
+            # Esperar a que carguen más comentarios
+            time.sleep(2)
+            
+            # Contar comentarios después del scroll
+            elementos_comentarios = driver.find_elements(By.CSS_SELECTOR, ".css-1gstnae-DivCommentItemWrapper")
+            nuevos_comentarios = len(elementos_comentarios)
+            
+            print(f"Intento {intentos+1}: {nuevos_comentarios} comentarios cargados")
+            
+            # Verificar si se cargaron más comentarios
+            if nuevos_comentarios > comentarios_actuales:
+                comentarios_actuales = nuevos_comentarios
+                sin_cambios = 0
+            else:
+                sin_cambios += 1
         else:
-            sin_cambios += 1
+            print("No se encontraron comentarios para hacer scroll.")
+            break
         
         intentos += 1
     
     # Scrollear al inicio de los comentarios para procesarlos
-    primer_comentario = driver.find_elements(By.CSS_SELECTOR, ".css-1gstnae-DivCommentItemWrapper")[0]
-    driver.execute_script("arguments[0].scrollIntoView();", primer_comentario)
+    elementos_comentarios = driver.find_elements(By.CSS_SELECTOR, ".css-1gstnae-DivCommentItemWrapper")
+    if elementos_comentarios:
+        primer_comentario = elementos_comentarios[0]
+        driver.execute_script("arguments[0].scrollIntoView();", primer_comentario)
     
     print(f"Total de comentarios cargados: {comentarios_actuales}")
     return comentarios_actuales
 
+
 def extraer_comentarios(driver, limite=None):
-  
     comentarios = []
-    
     try:
         # Primero scrollear para cargar todos los comentarios
         total_comentarios = scrollear_comentarios(driver)
@@ -177,7 +198,7 @@ def extraer_comentarios(driver, limite=None):
         # Establecer límite (todos o un número específico)
         if limite is None or limite > total_comentarios:
             limite = total_comentarios
-            
+        
         print(f"Extrayendo {limite} comentarios de {total_comentarios} disponibles...")
         
         # Extraer la información de cada comentario
@@ -186,35 +207,67 @@ def extraer_comentarios(driver, limite=None):
             
             # Extraer nombre de usuario
             try:
-                usuario_element = elemento.find_element(By.CSS_SELECTOR, "p.TUXText--weight-medium[letter-spacing='0.09380000000000001']")
+                usuario_element = elemento.find_element(By.CSS_SELECTOR, "div[data-e2e='comment-username-1'] p.TUXText--weight-medium")
                 comentario['usuario'] = usuario_element.text
-            except:
+            except Exception as e:
+                print(f"Error al extraer usuario del comentario {i+1}: {e}")
                 comentario['usuario'] = "Desconocido"
             
             # Extraer contenido del comentario
             try:
                 contenido_element = elemento.find_element(By.CSS_SELECTOR, "span[data-e2e='comment-level-1'] p")
                 comentario['contenido'] = contenido_element.text
-            except:
+            except Exception as e:
+                print(f"Error al extraer contenido del comentario {i+1}: {e}")
                 comentario['contenido'] = ""
             
             # Extraer número de likes del comentario
             try:
-                likes_element = elemento.find_element(By.CSS_SELECTOR, ".css-1nd5cw-DivLikeContainer .TUXText--weight-normal")
+                likes_element = elemento.find_element(By.CSS_SELECTOR, ".css-1nd5cw-DivLikeContainer span.TUXText--weight-normal")
                 likes_texto = likes_element.text.strip()
                 comentario['likes'] = convertir_numero(likes_texto) if likes_texto else 0
             except Exception as e:
-                comentario['likes'] = 0
                 print(f"Error al extraer likes del comentario {i+1}: {e}")
+                comentario['likes'] = 0
             
             # Extraer fecha del comentario
             try:
-                fecha_element = elemento.find_element(By.CSS_SELECTOR, ".css-njhskk-DivCommentSubContentWrapper span:first-child")
-                fecha_texto = fecha_element.text.strip()
-                comentario['fecha'] = fecha_texto
-                fecha_exacta = procesar_fecha(fecha_texto)
-                comentario['fecha_exacta'] = fecha_exacta.strftime('%Y-%m-%d %H:%M:%S')
-            except:
+                # Intenta con un selector más específico basado en las clases TUXText
+                fecha_elements = elemento.find_elements(By.CSS_SELECTOR, 
+                    "span.TUXText.TUXText--tiktok-sans.TUXText--weight-normal[style*='color: var(--ui-text-3)']")
+                
+                if fecha_elements:
+                    fecha_texto = fecha_elements[0].text.strip()
+                    comentario['fecha'] = fecha_texto
+                    fecha_exacta = procesar_fecha(fecha_texto)
+                    comentario['fecha_exacta'] = fecha_exacta.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    # Intento alternativo con el selector original
+                    fecha_elements = elemento.find_elements(By.CSS_SELECTOR, ".css-njhskk-DivCommentSubContentWrapper span")
+                    if fecha_elements:
+                        fecha_texto = fecha_elements[0].text.strip()
+                        comentario['fecha'] = fecha_texto
+                        fecha_exacta = procesar_fecha(fecha_texto)
+                        comentario['fecha_exacta'] = fecha_exacta.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        # Último intento: buscar cualquier span con el formato de fecha
+                        all_spans = elemento.find_elements(By.TAG_NAME, "span")
+                        fecha_encontrada = False
+                        for span in all_spans:
+                            texto = span.text.strip()
+                            # Comprobar si el texto parece una fecha (como "Hace 5 h" o "4-27")
+                            if texto.startswith("Hace") or re.match(r'\d+-\d+', texto):
+                                fecha_texto = texto
+                                comentario['fecha'] = fecha_texto
+                                fecha_exacta = procesar_fecha(fecha_texto)
+                                comentario['fecha_exacta'] = fecha_exacta.strftime('%Y-%m-%d %H:%M:%S')
+                                fecha_encontrada = True
+                                break
+                        
+                        if not fecha_encontrada:
+                            raise Exception("No se encontró el elemento de fecha")
+            except Exception as e:
+                print(f"Error al extraer fecha del comentario {i+1}: {e}")
                 comentario['fecha'] = ""
                 comentario['fecha_exacta'] = None
             
@@ -223,25 +276,12 @@ def extraer_comentarios(driver, limite=None):
             # Mostrar progreso
             if (i+1) % 10 == 0:
                 print(f"Procesados {i+1} comentarios...")
+        
+        # Subir al principio del scroll
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(1)  # Opcional: para asegurar que la acción tenga efecto visual
     
     except Exception as e:
-        print(f"Error al extraer comentarios: {e}")
+        print(f"Error general al extraer comentarios: {e}")
     
     return comentarios
-
-
-def mostrar_resultados(info, comentarios):
-
-    print("\n===== INFORMACIÓN DEL VIDEO =====")
-    print(f"Likes: {info['likes']}")
-    print(f"Comentarios: {info['comentarios']}")
-    print(f"Fecha: {info['fecha']} (Calculada: {info['fecha_exacta']})")
-    
-    print("\n===== COMENTARIOS =====")
-    for i, comentario in enumerate(comentarios, 1):
-        print(f"\nComentario #{i}:")
-        print(f"  Usuario: {comentario['usuario']}")
-        print(f"  Contenido: {comentario['contenido']}")
-        print(f"  Likes: {comentario['likes']}")
-        print(f"  Fecha: {comentario['fecha']} (Calculada: {comentario['fecha_exacta']})")
-

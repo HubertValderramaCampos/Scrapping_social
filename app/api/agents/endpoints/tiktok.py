@@ -16,10 +16,12 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # Importamos los utils de tiktok
 from app.api.agents.endpoints.utils_tiktok.transcription import capturar_subtitulos
-from app.api.agents.endpoints.utils_tiktok.extract_information import extraer_informacion, extraer_comentarios, mostrar_resultados
+from app.api.agents.endpoints.utils_tiktok.extract_information import extraer_informacion, extraer_comentarios 
+from app.api.agents.endpoints.utils_tiktok.extract_channel import ext_data_ch
 from app.api.agents.endpoints.utils import es_politica_peru
 from app.api.agents.endpoints.utils import activar_subtitulos, dar_like, pasar_siguiente_video
 from app.api.agents.endpoints.utils import esperar_elemento
+from app.api.agents.endpoints.utils_tiktok.save_db import guardar_en_base_datos
 
 # Creación del enrutador de la API
 router = APIRouter()
@@ -78,34 +80,29 @@ async def tiktok_transcribe(num_videos: str = "1"):
                     pasar_siguiente_video(driver)
                     continue
                     
-                print(f"Subtítulos capturados: {subtitles[:100]}...")  # Mostramos solo los primeros 100 caracteres
+                print(f"Subtítulos capturados: {subtitles[:100]}...") 
                 
                 # Verificamos si el contenido está relacionado con política peruana
                 print("Analizando si el contenido es sobre política peruana...")
-                es_politico = await es_politica_peru(subtitles)
-                
-                # Guardamos los resultados de este video
-                resultado_video = {
-                    "video_number": i+1,
-                    "subtitulos": subtitles,
-                    "es_politico": es_politico
-                }
-                results.append(resultado_video)
-                
+                es_politico = es_politica_peru(subtitles)
+                          
                 # Si no es político, pasamos al siguiente video
                 if not es_politico:
                     print("El contenido no es político peruano. Pasando al siguiente video...")
                     pasar_siguiente_video(driver)
                     continue
                 
-                # Si es político, damos like al video
+                # Si es político, damos like al video , extraemos información y guardamos en la db
                 print("Contenido político peruano encontrado, Dando like...")
                 dar_like(driver)
+
                 print("Extrayendo información del video...")
-                info = extraer_informacion(driver)
-                comentarios = extraer_comentarios(driver)
-                print(comentarios)
-                mostrar_resultados(info, comentarios)
+                info_channel = ext_data_ch(driver)
+                info_video = extraer_informacion(driver)
+                info_comments = extraer_comentarios(driver)
+                
+                print("Guardando información en la base de datos...")
+                guardar_en_base_datos(info_channel, info_video, info_comments)
 
 
                 
@@ -114,7 +111,7 @@ async def tiktok_transcribe(num_videos: str = "1"):
                     print("Pasando al siguiente video...")
                     pasar_siguiente_video(driver)
                     # Esperamos un poco más para asegurar que el siguiente video cargue
-                    time.sleep(3)
+                    time.sleep(2)
 
             except Exception as e:
                 error_message = f"Error procesando el video {i+1}: {str(e)}"
@@ -127,7 +124,6 @@ async def tiktok_transcribe(num_videos: str = "1"):
                     "error": error_message
                 })
                 
-                # Intentamos pasar al siguiente video si hay un error
                 try:
                     print("Intentando pasar al siguiente video después de error...")
                     pasar_siguiente_video(driver)

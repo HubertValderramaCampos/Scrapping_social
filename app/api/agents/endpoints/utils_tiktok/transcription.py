@@ -40,9 +40,9 @@ def capturar_subtitulos(driver, duracion_segundos):
                         texto_completo.append(texto)
                         print(f"Subtítulo capturado: {texto}")
             # Si no ha encontrado subtítulos por 6 segundos o más, pasa al siguiente video
-            elif time.time() - ultimo_subtitulo_encontrado >= 3:
+            elif time.time() - ultimo_subtitulo_encontrado >= 4:
                 print("No se han encontrado subtítulos por 6 segundos. Pasando al siguiente video...")
-                pasar_siguiente_video(driver, intentos_max=3)
+                pasar_siguiente_video(driver)
                 # Reinicia el contador después de pasar al siguiente video
                 ultimo_subtitulo_encontrado = time.time()
                 
