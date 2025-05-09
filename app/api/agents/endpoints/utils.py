@@ -7,9 +7,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
-
-
-
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def es_politica_peru(texto: str) -> bool:
@@ -145,43 +142,69 @@ def dar_like(driver):
 
 def pasar_siguiente_video(driver):
     print("Pasando al siguiente video...")
-
+    
     try:
-        # Verificar si existe el icono de 'Noticias' antes de proceder
-        selector_noticias = 'svg use[xlink\\:href="#Arrow_Counter_Clockwise-3e058a80"]'
-        icono_noticias = driver.find_elements(By.CSS_SELECTOR, selector_noticias)
-
-        # Si encontramos el icono de 'Noticias', hacer clic
-        if icono_noticias:
-            print("Icono de 'Noticias' encontrado, haciendo clic...")
-            contenedor_icono = driver.find_element(By.CSS_SELECTOR, 'svg use[xlink\\:href="#Arrow_Counter_Clockwise-3e058a80"]')
-            contenedor_icono.click()
-            time.sleep(1)
-
-        # Verificar si existe el botón para repetir y hacer clic en él si está presente
+        # 1. Primero buscar y desactivar el ícono de repetición si existe
         try:
-            selector_repetir = 'div.css-q1bwae-DivPlayIconContainer.e1ya9dnw8 svg use[xlink\\:href="#Arrow_Counter_Clockwise-3e058a80"]'
-            icono_repetir = driver.find_elements(By.CSS_SELECTOR, selector_repetir)
-
+            # Usando JavaScript para evitar problemas de namespace en XPath
+            icono_repetir = driver.execute_script("""
+                return document.querySelector('svg[width="24"][height="24"][fill="#fff"] use[*|href="#Arrow_Counter_Clockwise-3e058a80"]');
+            """)
+            
             if icono_repetir:
-                print("Ícono de repetir encontrado, haciendo clic para desactivarlo...")
-                contenedor_icono_repetir = driver.find_element(By.CSS_SELECTOR, 'div.css-q1bwae-DivPlayIconContainer.e1ya9dnw8')
-                contenedor_icono_repetir.click()
-                time.sleep(1)
+                print("Ícono de repetición encontrado, haciendo clic para desactivarlo...")
+                # Navegar hacia arriba para encontrar el elemento clicable
+                elemento_clicable = driver.execute_script("""
+                    var svg = arguments[0];
+                    // Buscar hasta 3 niveles hacia arriba para encontrar un elemento clicable
+                    var parent = svg.parentNode;
+                    for (var i = 0; i < 3; i++) {
+                        if (parent.tagName === 'BUTTON' || parent.tagName === 'DIV') {
+                            return parent;
+                        }
+                        parent = parent.parentNode;
+                        if (!parent) break;
+                    }
+                    return svg.parentNode; // Devolver el padre inmediato si no encontramos nada mejor
+                """, icono_repetir)
+                
+                driver.execute_script("arguments[0].click();", elemento_clicable)
+                time.sleep(1.5)
+                print("Se hizo clic en el ícono de repetición exitosamente.")
         except Exception as e:
-            print(f"No se encontró el botón de repetir: {e}")
-
-        # Intentar encontrar y hacer clic en el botón para pasar al siguiente video
+            print(f"No se encontró el ícono de repetición o no se pudo hacer clic: {e}")
+        
+        # 2. Luego intentar encontrar y hacer clic en el botón para pasar al siguiente video
         try:
-            next_button = driver.find_element(By.CSS_SELECTOR, 'button[data-e2e="arrow-right"], button[aria-label="Siguiente video"]')
-            next_button.click()
+            # Usar JavaScript para encontrar y hacer clic en el botón
+            driver.execute_script("""
+                var nextButton = document.querySelector('button[data-e2e="arrow-right"]');
+                if (nextButton) {
+                    nextButton.scrollIntoView({block: 'center'});
+                    nextButton.click();
+                    return true;
+                }
+                return false;
+            """)
+            
             time.sleep(3)
             print("Se pasó al siguiente video exitosamente.")
             return True
         except Exception as e:
-            print("No se encontró el botón para pasar al siguiente video.")
-            return False
+            print(f"Error al hacer clic en el botón de siguiente video: {e}")
+            
+            # Intento alternativo usando Actions
+            try:
+                next_button = driver.find_element(By.CSS_SELECTOR, 'button[data-e2e="arrow-right"]')
+                actions = ActionChains(driver)
+                actions.move_to_element(next_button).click().perform()
+                time.sleep(3)
+                print("Se pasó al siguiente video usando ActionChains.")
+                return True
+            except Exception as e2:
+                print(f"También falló el intento alternativo: {e2}")
+                return False
 
     except Exception as e:
-        print(f"Error al intentar pasar al siguiente video: {e}")
+        print(f"Error general al intentar pasar al siguiente video: {e}")
         return False

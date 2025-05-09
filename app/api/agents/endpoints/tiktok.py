@@ -73,7 +73,7 @@ async def tiktok_transcribe(num_videos: str = "1"):
                 
                 # Capturamos los subtítulos
                 print("Capturando subtítulos...")
-                subtitles = capturar_subtitulos(driver, 25)
+                subtitles = capturar_subtitulos(driver, 20)
                 
                 if not subtitles or len(subtitles.strip()) < 5:  # Verificamos que no esté vacío o sea muy corto
                     print("No se capturaron subtítulos suficientes. Pasando al siguiente video...")
@@ -95,6 +95,8 @@ async def tiktok_transcribe(num_videos: str = "1"):
                 # Si es político, damos like al video , extraemos información y guardamos en la db
                 print("Contenido político peruano encontrado, Dando like...")
                 dar_like(driver)
+
+                print("Extrayendo subtitulos completos...")
 
                 print("Extrayendo información del video...")
                 info_channel = ext_data_ch(driver)
