@@ -131,7 +131,8 @@ def extraer_informacion_video(driver):
         'likes': 0,
         'comentarios': 0,
         'fecha': None,
-        'fecha_exacta': None
+        'fecha_exacta': None,
+        'video_url': driver.current_url  # Añadimos la URL del video
     }
     
     try:
@@ -181,6 +182,7 @@ def extraer_informacion_video(driver):
     
     return resultado
 
+
 def scrollear_comentarios(driver, max_intentos=20):
     """
     Scrollea para cargar todos los comentarios del video.
@@ -225,7 +227,6 @@ def scrollear_comentarios(driver, max_intentos=20):
             elementos_comentarios = driver.find_elements(By.CSS_SELECTOR, ".css-1gstnae-DivCommentItemWrapper")
             nuevos_comentarios = len(elementos_comentarios)
             
-            print(f"Intento {intentos+1}: {nuevos_comentarios} comentarios cargados")
             
             # Verificar si se cargaron más comentarios
             if nuevos_comentarios > comentarios_actuales:
@@ -346,8 +347,7 @@ def extraer_comentarios(driver, limite=None):
             comentarios.append(comentario)
             
             # Mostrar progreso
-            if (i+1) % 10 == 0:
-                print(f"Procesados {i+1} comentarios...")
+
         
         # Subir al principio del scroll
         driver.execute_script("window.scrollTo(0, 0);")

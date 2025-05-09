@@ -35,11 +35,24 @@
         "secure": true,
         "session": true,
         "storeId": null,
-        "value": "69ed25613e4c83da7fb640d3d4794a6c"
+        "value": "bc22bfe801eea8552443ebdf0dc8c88e"
+    },
+    {
+        "domain": "www.tiktok.com",
+        "expirationDate": 1747252482.304266,
+        "hostOnly": true,
+        "httpOnly": false,
+        "name": "living_user_id",
+        "path": "/",
+        "sameSite": null,
+        "secure": false,
+        "session": false,
+        "storeId": null,
+        "value": "561927490433"
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1747507503.327261,
+        "expirationDate": 1747679420.959164,
         "hostOnly": false,
         "httpOnly": false,
         "name": "msToken",
@@ -48,7 +61,7 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "2G6OD3kTPjsgMhEHEtRQZieT56dzYmPDXy29sOX0YbMe2sm3Puv_0MyukdYBr91ofbxsyMjcOnhpL_gYFn4xQDZ3LkZMej9vgeWOLWK2ZIuHt5mS6Qwwa0Kn1GBDNZGXrns1WAolOE38o2CYFuMRqrkTXQ=="
+        "value": "_ijN1B8HkMEly2f7uflWDAVAFEjviaOAYwj-BCt5EwF374Q9q1Hh-GEs8zi6Jg08e6T3zcJbt5gWrnqr54v_pGbQH58AFxOUNyIJKyuTLsuIr4QhxFlZLNALbCiEQnxrUREQ1k0EI0kYXc9Kj7qYiVqf"
     },
     {
         "domain": ".tiktok.com",
@@ -65,7 +78,7 @@
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1762195332.844078,
+        "expirationDate": 1762367096.52566,
         "hostOnly": false,
         "httpOnly": true,
         "name": "ttwid",
@@ -74,11 +87,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "1%7C88p_iOnqhtP9kl1bLjuEhZ4OA3ji6FzpC3LFVwUI01U%7C1746643332%7Cc99d373edf7e9d0935db0db88700959840fbcddc848b9eda45d1355e151f2e50"
+        "value": "1%7C88p_iOnqhtP9kl1bLjuEhZ4OA3ji6FzpC3LFVwUI01U%7C1746815095%7C8d560e5c2b79e9ed6c3d779c8d797c972f0d6d48bdea89886347ae2112633348"
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1762193649.110354,
+        "expirationDate": 1762193649.492853,
         "hostOnly": false,
         "httpOnly": true,
         "name": "store-country-code-src",
@@ -91,7 +104,7 @@
     },
     {
         "domain": ".www.tiktok.com",
-        "expirationDate": 1747075337,
+        "expirationDate": 1747144700,
         "hostOnly": false,
         "httpOnly": false,
         "name": "perf_feed_cache",
@@ -100,7 +113,7 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "{%22expireTimestamp%22:1746813600000%2C%22itemIds%22:[%227500972917732281606%22%2C%227501510727866354949%22%2C%227501062325848395014%22]}"
+        "value": "{%22expireTimestamp%22:1746882000000%2C%22itemIds%22:[%227501877688076881158%22%2C%227477333255692307718%22]}"
     },
     {
         "domain": ".tiktok.com",
@@ -130,7 +143,7 @@
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1762193649.110279,
+        "expirationDate": 1762193649.492788,
         "hostOnly": false,
         "httpOnly": true,
         "name": "store-country-sign",
@@ -139,11 +152,11 @@
         "secure": false,
         "session": false,
         "storeId": null,
-        "value": "MEIEDJmKEOaE8a1X7ROvuQQg-SLwQCIC1ttSAAYoRZ6QJwiNhBqqTLBa2uUgMK6mt90EEC0aVToZkreswypXYW6MXjM"
+        "value": "MEIEDM_-TKuUxa-2hs1dlgQgkP9FwdWBby_4eYk3eek7RFk0Mg1oZKnZeKFCj7d8groEEOjUiwdlzmJ_Jidy4L4AunQ"
     },
     {
         "domain": "www.tiktok.com",
-        "expirationDate": 1747248195.595866,
+        "expirationDate": 1747420195.704096,
         "hostOnly": true,
         "httpOnly": false,
         "name": "msToken",
@@ -152,23 +165,11 @@
         "secure": false,
         "session": false,
         "storeId": null,
-        "value": "Jy5b4xYc6j47CO8tqnJL8uak1pMMc7CtvUyef-la8Fn9eXmHFh5bBQG_RqaTNtKdtzPsxmUc9uqx0eQqB45br5qnkRi2J4dA8fuel1Of_3zTtzIDPPjr8OXxyy_L6a_HUepRiHVzcEyIcVQDe6AvDpTEfA=="
+        "value": "Fy_h1qUWDr614TGc-65ivbrPRr-U_gGNbQDMb9r7onCsbQ9uoy9BmTHQro0XWP1Kd2iwOLWxbr26OKOIKkrZihOm9jd68YQXqhrjIp8pfgdXVfHjWlIOrGgUrLS-h11kMr5lzFvJAs8KOoqrovJGG9-y"
     },
     {
         "domain": ".tiktok.com",
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "s_v_web_id",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": true,
-        "storeId": null,
-        "value": "verify_mae5sfy4_KKRxrPcq_qZ00_4CR5_8V22_QTb1e4X6lk2F"
-    },
-    {
-        "domain": ".tiktok.com",
-        "expirationDate": 1762193649.110135,
+        "expirationDate": 1762193649.492708,
         "hostOnly": false,
         "httpOnly": true,
         "name": "store-idc",
@@ -194,7 +195,7 @@
     },
     {
         "domain": ".www.tiktok.com",
-        "expirationDate": 1747248130.708996,
+        "expirationDate": 1747419894.479418,
         "hostOnly": false,
         "httpOnly": false,
         "name": "tiktok_webapp_theme",
@@ -207,7 +208,7 @@
     },
     {
         "domain": ".www.tiktok.com",
-        "expirationDate": 1747241382,
+        "expirationDate": 1747249804,
         "hostOnly": false,
         "httpOnly": false,
         "name": "__tea_cache_tokens_1988",
@@ -216,7 +217,7 @@
         "secure": false,
         "session": false,
         "storeId": null,
-        "value": "{%22user_unique_id%22:%227429362457451546117%22%2C%22timestamp%22:1746636494095%2C%22_type_%22:%22default%22}"
+        "value": "{%22web_id%22:%227501746979116189190%22%2C%22user_unique_id%22:%227429362457451546117%22%2C%22timestamp%22:1746643334288%2C%22_type_%22:%22default%22}"
     },
     {
         "domain": ".tiktok.com",
@@ -272,7 +273,7 @@
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1762188585.932031,
+        "expirationDate": 1762197010.801035,
         "hostOnly": false,
         "httpOnly": true,
         "name": "odin_tt",
@@ -281,7 +282,7 @@
         "secure": false,
         "session": false,
         "storeId": null,
-        "value": "5665058b0db141fdb56bd240ed60a29a97e9aa985e47aa4ac54520be62bc28af24d444cc5dc33562d2112b659ccaf5c4153f0ee56129da7122e7a40ce2d8c111dbf96a8c6c95bb044d5b69da8c7faf6b"
+        "value": "d7b81045f13c5838933fd07eb30daf2bbcc7482f4c6e6a03ea9c0dc2a7552b3b408edbf2a6485c1e95f2628eaf4f6c09aa0e80c2feb73b954391b7934fd90e4cce1e45c1ed77c28fd90a0e250568e7d6"
     },
     {
         "domain": ".tiktok.com",
@@ -388,7 +389,7 @@
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1762193649.110324,
+        "expirationDate": 1762193649.492826,
         "hostOnly": false,
         "httpOnly": true,
         "name": "store-country-code",
@@ -401,7 +402,7 @@
     },
     {
         "domain": ".www.tiktok.com",
-        "expirationDate": 1747248130.708851,
+        "expirationDate": 1747419894.479302,
         "hostOnly": false,
         "httpOnly": false,
         "name": "tiktok_webapp_theme_source",
@@ -410,11 +411,11 @@
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "auto"
+        "value": "system"
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1762193649.110401,
+        "expirationDate": 1762193649.492878,
         "hostOnly": false,
         "httpOnly": true,
         "name": "tt-target-idc",
@@ -427,7 +428,7 @@
     },
     {
         "domain": ".tiktok.com",
-        "expirationDate": 1762195329.704683,
+        "expirationDate": 1762367093.893593,
         "hostOnly": false,
         "httpOnly": true,
         "name": "tt_chain_token",
@@ -448,7 +449,7 @@
         "secure": true,
         "session": true,
         "storeId": null,
-        "value": "qGRLZMvN-GsHY_-QWgVRICQiRehp21o-R6SE"
+        "value": "tblzeIwt-aGQ0BVe9taO_dJiDEW1rcyoQuwY"
     },
     {
         "domain": ".tiktok.com",

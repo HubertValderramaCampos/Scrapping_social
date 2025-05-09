@@ -5,7 +5,7 @@ import time
 import os
 import openai
 from selenium.webdriver.common.by import By
-from app.api.agents.services.tiktok_service.tiktok_interaction import pasar_siguiente_video, dar_like
+from app.api.agents.services.tiktok_service.tiktok_interaction import dar_like
 
 # Inicialización del cliente de OpenAI
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -21,13 +21,28 @@ def analizar_contenido_politico(texto: str) -> bool:
         bool: True si el texto está relacionado con política peruana, False en caso contrario
     """
     system_prompt = (
-        "Eres un analizador de contenido experto en identificar cualquier mención o alusión a temas políticos o sociales del Perú. "
-        "Analiza el siguiente texto, que corresponde a subtítulos de un video de TikTok. Debes detectar si el contenido presenta "
-        "cualquier referencia, directa o indirecta, a política peruana o asuntos sociales relevantes del país. Esto incluye, pero no se limita a: "
-        "protestas, denuncias ciudadanas, problemáticas sociales, corrupción, acciones del gobierno, decisiones estatales, "
-        "crisis institucionales, afectaciones a comunidades, conflictos sociales, políticas públicas, y menciones a políticos, autoridades, "
-        "funcionarios públicos, candidatos, expresidentes, congresistas o figuras públicas asociadas a la política nacional. "
-        "Responde únicamente con 'true' si el texto está relacionado con cualquiera de estos temas. En caso contrario, responde 'false'."
+        "Eres un clasificador de texto que determina si una transcripción de TikTok contiene alguna alusión al proceso electoral presidencial de Perú 2026 o a sus precandidatos." 
+        "Instrucciones:"
+        "1. Recibe como entrada una transcripción de TikTok."
+        "2. Devuelve únicamente:"
+        "   - “true” si el texto menciona directa o indirectamente:"
+        "     • El proceso electoral presidencial de 2026 (p. ej., elecciones, campaña, debates, encuestas, partidos, votaciones, candidaturas, etc.)."
+        "     • Cualquier precandidatura o aspiración presidencial (incluso sin nombrar al precandidato concreto)."
+        "   - “false” en caso contrario (temas distintos al proceso o candidatos presidenciales)."
+        "Para la detección, ten en cuenta esta lista de precandidatos oficialmente declarados para 2026 en Perú:"
+        "- Keiko Fujimori — Fuerza Popular  "
+        "- Rafael López Aliaga — Renovación Popular  "
+        "- Carlos Álvarez — País para Todos  "
+        "- Hernando de Soto — Avanza País  "
+        "- César Acuña — Alianza para el Progreso  "
+        "- Verónika Mendoza — Nuevo Perú  "
+        "- Alfonso López Chau — Ahora Nación  "
+        "- Susel Paredes — Partido Morado  "
+        "- Rafael Belaunde — Acción Popular  "
+        "- Alfredo Barnechea — Acción Popular  "
+        "- Phillip Butters — Avanza País  "
+        "- Fernando Olivera — Frente de la Esperanza  "
+        "- Guillermo Bermejo — Perú Libre  "  
     )
 
     user_prompt = f'Texto: "{texto}"'
@@ -68,7 +83,6 @@ def capturar_y_analizar_subtitulos(driver, tiempo_minimo_segundos=25):
     Returns:
         dict: Diccionario con los subtítulos capturados, si es político y otros metadatos
     """
-    print(f"Iniciando captura y análisis de subtítulos (tiempo mínimo: {tiempo_minimo_segundos}s)...")
     
     # Variables para el seguimiento
     subtitulos_unicos = set()
@@ -83,19 +97,22 @@ def capturar_y_analizar_subtitulos(driver, tiempo_minimo_segundos=25):
     
     # Control de subtítulos
     ultimo_subtitulo_encontrado = time.time()
-    max_tiempo_sin_subtitulos = 6  # Segundos máximos sin subtítulos antes de pasar al siguiente video
+    max_tiempo_sin_subtitulos = 6  # Segundos máximos sin subtítulos antes de determinar que el video terminó
     
     # Control de like
     like_dado = False
     
-    while True:  # Bucle infinito - continuará hasta que se detecte alguna condición de salida
+    # Detectar fin del análisis
+    analisis_completo = False
+    
+    while not analisis_completo:
         tiempo_actual = time.time()
         tiempo_transcurrido = tiempo_actual - tiempo_inicio
         
-        # Si pasó el tiempo mínimo y no es político, terminamos y pasamos al siguiente video
+        # Si pasó el tiempo mínimo y no es político, terminamos
         if tiempo_actual > tiempo_final_minimo and not es_politico:
-            print(f"Tiempo mínimo cumplido ({tiempo_minimo_segundos}s) y no se detectó contenido político. Pasando al siguiente video.")
-            pasar_siguiente_video(driver)
+            print(f"Tiempo mínimo cumplido ({tiempo_minimo_segundos}s) y no se detectó contenido político.")
+            analisis_completo = True
             break
             
         try:
@@ -116,18 +133,12 @@ def capturar_y_analizar_subtitulos(driver, tiempo_minimo_segundos=25):
                         texto_completo.append(texto)
                         print(f"[{int(tiempo_transcurrido)}s] Subtítulo: {texto}")
             
-            # Si no ha encontrado subtítulos por tiempo_max_sin_subtitulos o más, pasar al siguiente video
+            # Si no ha encontrado subtítulos por tiempo_max_sin_subtitulos o más, consideramos que terminó el video
             elif tiempo_actual - ultimo_subtitulo_encontrado >= max_tiempo_sin_subtitulos and not es_politico:
-                print(f"No se han encontrado subtítulos por {max_tiempo_sin_subtitulos}s. Pasando al siguiente video...")
-                pasar_siguiente_video(driver)
-                # Reiniciar contadores
-                ultimo_subtitulo_encontrado = tiempo_actual
-                tiempo_inicio = tiempo_actual
-                tiempo_final_minimo = tiempo_actual + tiempo_minimo_segundos
-                subtitulos_unicos = set()
-                texto_completo = []
-                es_politico = False
-                like_dado = False
+                if tiempo_actual > tiempo_final_minimo:
+                    print("Tiempo mínimo cumplido. Finalizando análisis.")
+                    analisis_completo = True
+                    break
             
             # Realizar análisis periódico después de acumular suficientes subtítulos
             if (tiempo_actual - ultimo_analisis >= intervalo_analisis and 
@@ -155,11 +166,10 @@ def capturar_y_analizar_subtitulos(driver, tiempo_minimo_segundos=25):
                     
             # Si es político y ya pasó el tiempo mínimo, verificar si hay que terminar
             if es_politico and tiempo_actual > tiempo_final_minimo:
-                # Aquí solo continuamos capturando subtítulos sin analizar más
-                # Si no hay subtítulos por un tiempo prolongado, podemos pasar al siguiente
+                # Si no hay subtítulos por un tiempo prolongado, consideramos que terminó el video
                 if tiempo_actual - ultimo_subtitulo_encontrado >= max_tiempo_sin_subtitulos:
-                    print(f"Video político finalizado. No hay nuevos subtítulos por {max_tiempo_sin_subtitulos}s. Pasando al siguiente video...")
-                    pasar_siguiente_video(driver)
+                    print(f"Video político finalizado. No hay nuevos subtítulos por {max_tiempo_sin_subtitulos}s.")
+                    analisis_completo = True
                     break
         
         except Exception as e:
@@ -174,7 +184,8 @@ def capturar_y_analizar_subtitulos(driver, tiempo_minimo_segundos=25):
         "es_politico": es_politico,
         "fragmentos_capturados": len(texto_completo),
         "caracteres_totales": len(subtitulos_texto),
-        "tiempo_captura": time.time() - tiempo_inicio
+        "tiempo_captura": time.time() - tiempo_inicio,
+        "like_dado": like_dado  # Agregar bandera para saber si ya se dio like
     }
     
     print(f"Captura finalizada: {resultado['fragmentos_capturados']} fragmentos, {resultado['caracteres_totales']} caracteres")

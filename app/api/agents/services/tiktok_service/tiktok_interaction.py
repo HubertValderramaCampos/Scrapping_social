@@ -181,7 +181,7 @@ def pasar_siguiente_video(driver):
                 return false;
             """)
             
-            time.sleep(3)
+            time.sleep(1)
             print("Se pasó al siguiente video exitosamente.")
             return True
         except Exception as e:

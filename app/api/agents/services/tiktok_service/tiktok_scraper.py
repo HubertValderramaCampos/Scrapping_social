@@ -63,15 +63,19 @@ class TikTokScraperService:
             if not activar_subtitulos_exitoso:
                 print("ADVERTENCIA: No se pudieron activar los subtítulos inicialmente. Continuando de todas formas...")
             
-            # Procesamos cada video
-            for i in range(num_videos):
+            videos_procesados = 0
+            
+            # Procesamos videos hasta alcanzar el número solicitado
+            while videos_procesados < num_videos:
                 try:
-                    print(f"\n=== Procesando video {i+1}/{num_videos} ===")
+                    print(f"\n=== Procesando video {videos_procesados+1}/{num_videos} ===")
                     
                     # Esperamos a que el video cargue
                     video_element = esperar_elemento(driver, By.TAG_NAME, "video", 5)
                     if not video_element:
-                        print(f"No se encontró el elemento de video para el video {i+1}. Intentando pasar al siguiente...")
+                        print(f"No se encontró el elemento de video. Intentando pasar al siguiente...")
+                        pasar_siguiente_video(driver)
+                        time.sleep(1)
                         continue
                     
                     # Capturamos y analizamos los subtítulos con la nueva función
@@ -80,11 +84,13 @@ class TikTokScraperService:
                     
                     subtitulos = resultado_subtitulos["subtitulos"]
                     es_politico = resultado_subtitulos["es_politico"]
+                    like_ya_dado = resultado_subtitulos.get("like_dado", False)
                     
                     # Si no se capturaron suficientes subtítulos, pasamos al siguiente
                     if not subtitulos or len(subtitulos.strip()) < 5:
                         print("No se capturaron subtítulos suficientes. Pasando al siguiente video...")
                         pasar_siguiente_video(driver)
+                        time.sleep(1)
                         continue
                     
                     print(f"Subtítulos capturados: {subtitulos[:100]}...")
@@ -93,60 +99,61 @@ class TikTokScraperService:
                     if not es_politico:
                         print("El contenido no es político peruano. Pasando al siguiente video...")
                         pasar_siguiente_video(driver)
+                        time.sleep(2)
                         continue
                     
-                    # Si es político, damos like al video, extraemos información y guardamos en la DB
-                    print("Contenido político peruano encontrado, Dando like...")
-
-                    dar_like(driver)
+                    # Si es político, damos like al video (si no se dio ya), 
+                    # extraemos información y guardamos en la DB
+                    print("Contenido político peruano encontrado.")
+                    
+                    # Solo damos like si no se ha dado ya durante el análisis
+                    if not like_ya_dado:
+                        print("Dando like...")
+                        dar_like(driver)
+                    else:
+                        print("Like ya dado durante el análisis.")
     
                     print("Extrayendo información del video...")
                     info_channel = extraer_datos_canal(driver)
                     info_video = extraer_informacion_video(driver)
+                    
+                    print("Extrayendo comentarios...")
                     info_comments = extraer_comentarios(driver)
                     
                     print("Guardando información en la base de datos...")
-                    guardar_en_base_datos(info_channel, info_video, info_comments)
+                    guardar_en_base_datos(info_channel, info_video, info_comments, subtitulos)
     
                     # Guardamos resultados para devolver
                     video_result = {
-                        "video_number": i+1,
-                        "subtitles": subtitulos[:100] + "...",
-                        "is_political": True,
-                        "channel": info_channel,
-                        "stats": {
-                            "likes": info_video.get('likes', 0),
-                            "comments": info_video.get('comentarios', 0)
-                        },
-                        "detalles_analisis": {
-                            "fragmentos_capturados": resultado_subtitulos["fragmentos_capturados"],
-                            "caracteres_totales": resultado_subtitulos["caracteres_totales"],
-                            "tiempo_captura": resultado_subtitulos["tiempo_captura"]
-                        }
+                        "video_number": videos_procesados+1,              
                     }
                     results.append(video_result)
                     
+                    # Incrementamos el contador de videos procesados
+                    videos_procesados += 1
+                    
                     # Si no es el último video, pasamos al siguiente
-                    if i < num_videos - 1:
+                    if videos_procesados < num_videos:
                         print("Pasando al siguiente video...")
                         pasar_siguiente_video(driver)
                         # Esperamos un poco más para asegurar que el siguiente video cargue
                         time.sleep(2)
     
                 except Exception as e:
-                    error_message = f"Error procesando el video {i+1}: {str(e)}"
+                    error_message = f"Error procesando el video {videos_procesados+1}: {str(e)}"
                     traceback_str = traceback.format_exc()
                     print(f"Error: {error_message}")
                     print(f"Error detallado: {traceback_str}")
     
                     results.append({
-                        "video_number": i+1,
+                        "video_number": videos_procesados+1,
                         "error": error_message
                     })
                     
                     try:
                         print("Intentando pasar al siguiente video después de error...")
                         pasar_siguiente_video(driver)
+                        time.sleep(2)
                     except Exception as e2:
                         print(f"No se pudo pasar al siguiente video después de error: {str(e2)}")
     
@@ -165,7 +172,7 @@ class TikTokScraperService:
                     self.browser.close()
                     print("Navegador cerrado después de error")
                 except:
-                    print("No se pudo cerrar el navegador")
+                    pass
     
             return {"error": error_message, "results": results}
         
