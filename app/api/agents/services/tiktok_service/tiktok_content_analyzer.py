@@ -10,42 +10,49 @@ from app.api.agents.services.tiktok_service.tiktok_interaction import dar_like
 # Inicialización del cliente de OpenAI
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def analizar_contenido_politico(texto: str) -> bool:
+def analizar_contenido_politico(texto_subtitulos: str, texto_descripcion: str = "") -> bool:
     """
     Analiza si un texto está relacionado con temas políticos o sociales del Perú.
     
     Args:
-        texto: El texto a analizar (subtítulos del video)
+        texto_subtitulos: El texto de los subtítulos del video
+        texto_descripcion: El texto de la descripción del video (opcional)
         
     Returns:
         bool: True si el texto está relacionado con política peruana, False en caso contrario
     """
+    # Combinar subtítulos y descripción para el análisis
+    texto_completo = texto_subtitulos
+    if texto_descripcion:
+        texto_descripcion+= " | DESCRIPCIÓN: " + texto_completo
+    
     system_prompt = (
-        "Eres un clasificador de texto que determina si una transcripción de TikTok contiene alguna alusión al proceso electoral presidencial de Perú 2026 o a sus precandidatos." 
-        "Instrucciones:"
-        "1. Recibe como entrada una transcripción de TikTok."
-        "2. Devuelve únicamente:"
-        "   - “true” si el texto menciona directa o indirectamente:"
-        "     • El proceso electoral presidencial de 2026 (p. ej., elecciones, campaña, debates, encuestas, partidos, votaciones, candidaturas, etc.)."
-        "     • Cualquier precandidatura o aspiración presidencial (incluso sin nombrar al precandidato concreto)."
-        "   - “false” en caso contrario (temas distintos al proceso o candidatos presidenciales)."
-        "Para la detección, ten en cuenta esta lista de precandidatos oficialmente declarados para 2026 en Perú:"
-        "- Keiko Fujimori — Fuerza Popular  "
-        "- Rafael López Aliaga — Renovación Popular  "
-        "- Carlos Álvarez — País para Todos  "
-        "- Hernando de Soto — Avanza País  "
-        "- César Acuña — Alianza para el Progreso  "
-        "- Verónika Mendoza — Nuevo Perú  "
-        "- Alfonso López Chau — Ahora Nación  "
-        "- Susel Paredes — Partido Morado  "
-        "- Rafael Belaunde — Acción Popular  "
-        "- Alfredo Barnechea — Acción Popular  "
-        "- Phillip Butters — Avanza País  "
-        "- Fernando Olivera — Frente de la Esperanza  "
-        "- Guillermo Bermejo — Perú Libre  "  
+        'Eres un clasificador de texto que determina si una transcripción y/o descripción de TikTok contiene alguna alusión al proceso electoral presidencial de Perú 2026 o a sus precandidatos. '
+        'Instrucciones: '
+        '1. Recibe como entrada una transcripción de TikTok y/o su descripción. '
+        '2. Devuelve únicamente: '
+        '   - "true" si el texto menciona directa o indirectamente: '
+        '     • El proceso electoral presidencial de 2026 (p. ej., elecciones, campaña, debates, encuestas, partidos, votaciones, candidaturas, etc.). '
+        '     • Cualquier precandidatura o aspiración presidencial (incluso sin nombrar al precandidato concreto). '
+        '   - "false" en caso contrario (temas distintos al proceso o candidatos presidenciales). '
+        'IMPORTANTE: Si el texto habla de elecciones en otros países (como Ecuador, Colombia, etc.) pero NO menciona el proceso electoral de Perú 2026, debes responder "false". '
+        'Para la detección, ten en cuenta esta lista de precandidatos oficialmente declarados para 2026 en Perú: '
+        '- Keiko Fujimori — Fuerza Popular  '
+        '- Rafael López Aliaga — Renovación Popular  '
+        '- Carlos Álvarez — País para Todos  '
+        '- Hernando de Soto — Avanza País  '
+        '- César Acuña — Alianza para el Progreso  '
+        '- Verónika Mendoza — Nuevo Perú  '
+        '- Alfonso López Chau — Ahora Nación  '
+        '- Susel Paredes — Partido Morado  '
+        '- Rafael Belaunde — Acción Popular  '
+        '- Alfredo Barnechea — Acción Popular  '
+        '- Phillip Butters — Avanza País  '
+        '- Fernando Olivera — Frente de la Esperanza  '
+        '- Guillermo Bermejo — Perú Libre  '
     )
 
-    user_prompt = f'Texto: "{texto}"'
+    user_prompt = f'Texto: "{texto_completo}"'
 
     try:
         respuesta = client.chat.completions.create(
@@ -70,19 +77,26 @@ def analizar_contenido_politico(texto: str) -> bool:
         print(f"Error con OpenAI: {e}")
         return False
 
+
 def capturar_y_analizar_subtitulos(driver, tiempo_minimo_segundos=25):
     """
-    Captura y analiza en tiempo real los subtítulos de un video de TikTok.
-    Monitorea durante un tiempo mínimo y continúa capturando si detecta contenido político.
-    Si es político, da like inmediatamente y continúa capturando subtítulos.
+    Captura y analiza en tiempo real los subtítulos y la descripción de un video de TikTok.
     
     Args:
         driver: El driver de Selenium WebDriver
         tiempo_minimo_segundos: Tiempo mínimo en segundos durante el cual se capturarán subtítulos (por defecto 25)
         
     Returns:
-        dict: Diccionario con los subtítulos capturados, si es político y otros metadatos
+        dict: Diccionario con los subtítulos capturados, la descripción, si es político y otros metadatos
     """
+    # Extraer la descripción del video al inicio
+    from app.api.agents.services.tiktok_service.tiktok_data_extractor import extraer_descripcion_video
+    descripcion_info = extraer_descripcion_video(driver)
+    descripcion_texto = descripcion_info["texto_completo"]
+    hashtags = descripcion_info["hashtags"]
+    
+    print(f"Descripción del video: {descripcion_texto}")
+    print(f"Hashtags encontrados: {', '.join(hashtags)}")
     
     # Variables para el seguimiento
     subtitulos_unicos = set()
@@ -146,10 +160,11 @@ def capturar_y_analizar_subtitulos(driver, tiempo_minimo_segundos=25):
                 not es_politico):
                 
                 ultimo_analisis = tiempo_actual
-                texto_para_analisis = " ".join(texto_completo)
+                texto_subtitulos = " ".join(texto_completo)
                 
-                print(f"[{int(tiempo_transcurrido)}s] Analizando contenido político...")
-                es_politico = analizar_contenido_politico(texto_para_analisis)
+                print(f"[{int(tiempo_transcurrido)}s] Analizando contenido político (subtítulos + descripción)...")
+                # Llamamos correctamente a la función con ambos parámetros
+                es_politico = analizar_contenido_politico(texto_subtitulos, descripcion_texto)
                 
                 if es_politico:
                     print(f"[{int(tiempo_transcurrido)}s] ¡CONTENIDO POLÍTICO DETECTADO!")

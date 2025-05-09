@@ -357,3 +357,53 @@ def extraer_comentarios(driver, limite=None):
         print(f"Error general al extraer comentarios: {e}")
     
     return comentarios
+
+
+def extraer_descripcion_video(driver):
+    """
+    Extrae la descripción completa del video de TikTok actual.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        
+    Returns:
+        str: Texto completo de la descripción del video incluyendo hashtags
+    """
+    try:
+        # Intentar encontrar el contenedor de descripción
+        descripcion_container = driver.find_element(
+            By.CSS_SELECTOR, 
+            "div[data-e2e='browse-video-desc']"
+        )
+        
+        if descripcion_container:
+            # Obtener todo el texto incluyendo los hashtags
+            texto_completo = descripcion_container.text
+            
+            # Opcionalmente, podemos extraer los hashtags por separado
+            hashtags = []
+            hashtag_elements = descripcion_container.find_elements(
+                By.CSS_SELECTOR, 
+                "strong.css-1p6dp51-StrongText"
+            )
+            
+            for hashtag in hashtag_elements:
+                if hashtag.text.startswith('#'):
+                    hashtags.append(hashtag.text.strip())
+            
+            return {
+                "texto_completo": texto_completo,
+                "hashtags": hashtags
+            }
+        else:
+            return {
+                "texto_completo": "",
+                "hashtags": []
+            }
+            
+    except Exception as e:
+        print(f"Error al extraer descripción del video: {e}")
+        return {
+            "texto_completo": "",
+            "hashtags": []
+        }
