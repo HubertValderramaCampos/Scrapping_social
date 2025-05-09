@@ -1,57 +1,26 @@
-import os
+"""
+Servicio para interacciones con la interfaz de TikTok.
+"""
 import time
-import openai
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-def es_politica_peru(texto: str) -> bool:
-    """
-    Analiza si un texto está relacionado con temas políticos o sociales del Perú.
-    """
-    system_prompt = (
-        "Eres un analizador de contenido experto en identificar cualquier mención o alusión a temas políticos o sociales del Perú. "
-        "Analiza el siguiente texto, que corresponde a subtítulos de un video de TikTok. Debes detectar si el contenido presenta "
-        "cualquier referencia, directa o indirecta, a política peruana o asuntos sociales relevantes del país. Esto incluye, pero no se limita a: "
-        "protestas, denuncias ciudadanas, problemáticas sociales, corrupción, acciones del gobierno, decisiones estatales, "
-        "crisis institucionales, afectaciones a comunidades, conflictos sociales, políticas públicas, y menciones a políticos, autoridades, "
-        "funcionarios públicos, candidatos, expresidentes, congresistas o figuras públicas asociadas a la política nacional. "
-        "Responde únicamente con 'true' si el texto está relacionado con cualquiera de estos temas. En caso contrario, responde 'false'."
-    )
-
-    user_prompt = f'Texto: "{texto}"'
-
-    try:
-        respuesta = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0,
-            max_tokens=5
-        )
-
-        contenido = respuesta.choices[0].message.content.strip().lower()
-        if contenido.startswith("true"):
-            return True
-        elif contenido.startswith("false"):
-            return False
-        else:
-            return False
-
-    except Exception as e:
-        print(f"Error con OpenAI: {e}")
-        return False
-
-
-
 def esperar_elemento(driver, by, selector, tiempo=10):
-
+    """
+    Espera a que un elemento esté presente en la página.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        by: El método de localización (By.ID, By.XPATH, etc.)
+        selector: El selector para encontrar el elemento
+        tiempo: Tiempo máximo de espera en segundos
+        
+    Returns:
+        El elemento encontrado o None si no se encuentra
+    """
     try:
         elemento = WebDriverWait(driver, tiempo).until(
             EC.presence_of_element_located((by, selector))
@@ -61,16 +30,27 @@ def esperar_elemento(driver, by, selector, tiempo=10):
         print(f"No se pudo encontrar el elemento {selector}")
         return None
 
-
 def activar_subtitulos(driver):
+    """
+    Activa los subtítulos en el video actual de TikTok.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        
+    Returns:
+        bool: True si los subtítulos fueron activados, False en caso contrario
+    """
     print("Activando subtítulos...")
 
     try:
+
+
         # Esperar a que el video esté presente
         video_element = esperar_elemento(driver, By.TAG_NAME, "video")
         if not video_element:
             print("No se encontró el elemento de video.")
             return False
+        
 
         # Hacer clic derecho en el video
         actions = ActionChains(driver)
@@ -109,6 +89,7 @@ def activar_subtitulos(driver):
         if close_button:
             close_button.click()
 
+
         print("Subtítulos activados exitosamente")
         return True
 
@@ -116,8 +97,16 @@ def activar_subtitulos(driver):
         print(f"Error al activar subtítulos: {str(e)}")
         return False
 
-
 def dar_like(driver):
+    """
+    Da like al video actual.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        
+    Returns:
+        bool: True si se dio like correctamente, False en caso contrario
+    """
     print("Intentando dar like...")
 
     try:
@@ -136,11 +125,16 @@ def dar_like(driver):
     print("No se pudo dar like")
     return False
 
-            
-
-
-
 def pasar_siguiente_video(driver):
+    """
+    Pasa al siguiente video en el feed de TikTok.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        
+    Returns:
+        bool: True si se pasó al siguiente video correctamente, False en caso contrario
+    """
     print("Pasando al siguiente video...")
     
     try:

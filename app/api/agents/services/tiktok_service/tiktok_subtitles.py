@@ -1,6 +1,9 @@
+"""
+Servicio para capturar y procesar subtítulos de videos TikTok.
+"""
 import time
 from selenium.webdriver.common.by import By
-from app.api.agents.endpoints.utils import pasar_siguiente_video
+from app.api.agents.services.tiktok_service.tiktok_interaction import pasar_siguiente_video
 
 def capturar_subtitulos(driver, duracion_segundos):
     """

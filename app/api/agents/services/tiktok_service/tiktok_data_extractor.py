@@ -1,4 +1,6 @@
-from selenium import webdriver
+"""
+Servicio para extraer datos de canales, videos y comentarios de TikTok.
+"""
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -6,9 +8,53 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from datetime import datetime, timedelta
 import re
 import time
-import json
+
+def extraer_datos_canal(driver):
+    """
+    Extrae información del canal de TikTok del video actual.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        
+    Returns:
+        dict: Diccionario con URL y nombre del canal
+    """
+    time.sleep(1)  
+
+    try:
+        # Obtener URL actual
+        full_url = driver.current_url
+
+        # Limpiar URL: extraer solo https://www.tiktok.com/@username
+        match = re.search(r"https://www\.tiktok\.com/@[a-zA-Z0-9._]+", full_url)
+        clean_url = match.group(0) if match else None
+
+        # Extraer nombre visible del canal (nickname)
+        name_element = driver.find_element(By.CLASS_NAME, "css-1xccqfx-SpanNickName")
+        name = name_element.text.strip()
+
+        return {
+            "url": clean_url,
+            "name": name
+        }
+
+    except Exception as e:
+        print(f"Error al extraer datos del canal: {e}")
+        return {
+            "url": None,
+            "name": None
+        }
 
 def convertir_numero(texto):
+    """
+    Convierte números de formato TikTok (1.2K, 3.4M, etc.) a formato numérico.
+    
+    Args:
+        texto: Texto que contiene el número a convertir
+        
+    Returns:
+        int: Número convertido
+    """
     if not texto:
         return 0
         
@@ -30,7 +76,47 @@ def convertir_numero(texto):
         # Si no tiene sufijo, convertir directamente
         return int(texto)
 
-def extraer_informacion(driver):
+def procesar_fecha(fecha_texto):
+    """
+    Convierte un texto de fecha de TikTok a un objeto datetime.
+    
+    Args:
+        fecha_texto: Texto que contiene la fecha
+        
+    Returns:
+        datetime: Objeto datetime con la fecha
+    """
+    fecha_actual = datetime.now()
+
+    # Formato: "Hace X día(s)"
+    if "Hace" in fecha_texto and "día" in fecha_texto:
+        dias_regex = re.search(r'Hace (\d+)', fecha_texto)
+        if dias_regex:
+            dias_atras = int(dias_regex.group(1))
+            return fecha_actual - timedelta(days=dias_atras)
+
+    # Formato: "Hace X h" (horas) o "Hace X m" (minutos) → es hoy
+    elif re.search(r'Hace \d+\s*[hm]', fecha_texto):
+        return fecha_actual.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Formato: "X-Y" donde X es el mes e Y es el día
+    elif re.match(r'^\d+-\d+$', fecha_texto):
+        mes, dia = map(int, fecha_texto.split('-'))
+        año = fecha_actual.year
+        # Ajustar el año si la fecha es futura
+        if mes > fecha_actual.month or (mes == fecha_actual.month and dia > fecha_actual.day):
+            año -= 1
+        return datetime(año, mes, dia)
+
+    # Formato: "YYYY-MM-DD"
+    elif re.match(r'^\d{4}-\d{1,2}-\d{1,2}$', fecha_texto):
+        año, mes, dia = map(int, fecha_texto.split('-'))
+        return datetime(año, mes, dia)
+
+    # Si no se reconoce el formato, devolver la fecha actual
+    return fecha_actual
+
+def extraer_informacion_video(driver):
     """
     Extrae información general del video de TikTok.
     
@@ -95,40 +181,17 @@ def extraer_informacion(driver):
     
     return resultado
 
-def procesar_fecha(fecha_texto):
-    fecha_actual = datetime.now()
-
-    # Formato: "Hace X día(s)"
-    if "Hace" in fecha_texto and "día" in fecha_texto:
-        dias_regex = re.search(r'Hace (\d+)', fecha_texto)
-        if dias_regex:
-            dias_atras = int(dias_regex.group(1))
-            return fecha_actual - timedelta(days=dias_atras)
-
-    # Formato: "Hace X h" (horas) o "Hace X m" (minutos) → es hoy
-    elif re.search(r'Hace \d+\s*[hm]', fecha_texto):
-        return fecha_actual.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    # Formato: "X-Y" donde X es el mes e Y es el día
-    elif re.match(r'^\d+-\d+$', fecha_texto):
-        mes, dia = map(int, fecha_texto.split('-'))
-        año = fecha_actual.year
-        # Ajustar el año si la fecha es futura
-        if mes > fecha_actual.month or (mes == fecha_actual.month and dia > fecha_actual.day):
-            año -= 1
-        return datetime(año, mes, dia)
-
-    # Formato: "YYYY-MM-DD"
-    elif re.match(r'^\d{4}-\d{1,2}-\d{1,2}$', fecha_texto):
-        año, mes, dia = map(int, fecha_texto.split('-'))
-        return datetime(año, mes, dia)
-
-    # Si no se reconoce el formato, devolver la fecha actual
-    return fecha_actual
-
-
 def scrollear_comentarios(driver, max_intentos=20):
-
+    """
+    Scrollea para cargar todos los comentarios del video.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        max_intentos: Número máximo de intentos de scrolleo
+        
+    Returns:
+        int: Número de comentarios cargados
+    """
     print("Scrolleando para cargar todos los comentarios...")
     
     # Encontrar el contenedor de comentarios
@@ -185,8 +248,17 @@ def scrollear_comentarios(driver, max_intentos=20):
     print(f"Total de comentarios cargados: {comentarios_actuales}")
     return comentarios_actuales
 
-
 def extraer_comentarios(driver, limite=None):
+    """
+    Extrae la información de los comentarios de un video TikTok.
+    
+    Args:
+        driver: El driver de Selenium WebDriver
+        limite: Número máximo de comentarios a extraer (None para todos)
+        
+    Returns:
+        list: Lista de diccionarios con información de comentarios
+    """
     comentarios = []
     try:
         # Primero scrollear para cargar todos los comentarios

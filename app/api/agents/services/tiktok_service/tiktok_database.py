@@ -1,3 +1,6 @@
+"""
+Servicio para guardar datos de TikTok en la base de datos.
+"""
 import os
 import psycopg2
 from datetime import datetime
@@ -131,13 +134,13 @@ def guardar_en_base_datos(info_channel, info_video, info_comments):
     except Exception as e:
         print(f"Error al guardar en la base de datos: {e}")
         # Revertir cambios en caso de error
-        if conn:
+        if 'conn' in locals() and conn:
             conn.rollback()
     finally:
         # Cerrar cursor y conexión
-        if cur:
+        if 'cur' in locals() and cur:
             cur.close()
-        if conn:
+        if 'conn' in locals() and conn:
             conn.close()
     
     return ids_generados
